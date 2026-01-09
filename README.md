@@ -82,14 +82,8 @@ RAFT перевыберет лидера, если большинство узл
 ## Тестирование и исследование поведения
 
 ### Быстрый тест (скрипт)
-Linux/macOS (bash):
 ```bash
 scripts/test_cluster.sh
-```
-
-Windows (PowerShell):
-```powershell
-./scripts/test_cluster.ps1
 ```
 
 Скрипт:

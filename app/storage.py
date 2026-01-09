@@ -40,49 +40,17 @@ class StateStorage:
     def __init__(self, data_dir: str) -> None:
         self.data_dir = data_dir
         self.state_file = os.path.join(data_dir, "state.json")
-        self.wal_file = os.path.join(data_dir, "wal.log")
         os.makedirs(self.data_dir, exist_ok=True)
 
     def load(self) -> PersistentState:
         if not os.path.exists(self.state_file):
-            state = PersistentState()
-        else:
-            with open(self.state_file, "r", encoding="utf-8") as handle:
-                payload = json.load(handle)
-            state = PersistentState.from_dict(payload)
-        wal_entries = self.load_wal()
-        if wal_entries:
-            state.log = wal_entries
-        return state
+            return PersistentState()
+        with open(self.state_file, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return PersistentState.from_dict(payload)
 
     def save(self, state: PersistentState) -> None:
         tmp_file = f"{self.state_file}.tmp"
         with open(tmp_file, "w", encoding="utf-8") as handle:
             json.dump(state.to_dict(), handle, ensure_ascii=False, indent=2)
         os.replace(tmp_file, self.state_file)
-
-    def load_wal(self) -> List[LogEntry]:
-        if not os.path.exists(self.wal_file):
-            return []
-        entries: List[LogEntry] = []
-        with open(self.wal_file, "r", encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line:
-                    continue
-                payload = json.loads(line)
-                entries.append(LogEntry(term=payload["term"], command=payload["command"]))
-        return entries
-
-    def append_wal(self, entry: LogEntry) -> None:
-        with open(self.wal_file, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps({"term": entry.term, "command": entry.command}, ensure_ascii=False))
-            handle.write("\n")
-
-    def persist_log(self, log: List[LogEntry]) -> None:
-        tmp_file = f"{self.wal_file}.tmp"
-        with open(tmp_file, "w", encoding="utf-8") as handle:
-            for entry in log:
-                handle.write(json.dumps({"term": entry.term, "command": entry.command}, ensure_ascii=False))
-                handle.write("\n")
-        os.replace(tmp_file, self.wal_file)

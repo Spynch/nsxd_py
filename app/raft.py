@@ -243,7 +243,6 @@ class RaftNode:
                 LogEntry(term=entry["term"], command=entry["command"])
                 for entry in payload.get("entries", [])
             ]
-            self.storage.persist_log(self.state.log)
         else:
             prev_index = payload.get("prev_log_index", -1)
             if prev_index >= 0 and prev_index >= len(self.state.log):
@@ -251,7 +250,6 @@ class RaftNode:
             self.state.log = self.state.log[: prev_index + 1]
             for entry in payload.get("entries", []):
                 self.state.log.append(LogEntry(term=entry["term"], command=entry["command"]))
-            self.storage.persist_log(self.state.log)
         leader_commit = payload.get("leader_commit", -1)
         if leader_commit > self.commit_index:
             self.commit_index = min(leader_commit, len(self.state.log) - 1)
@@ -288,7 +286,6 @@ class RaftNode:
     async def replicate_command(self, command: Dict[str, Any]) -> bool:
         entry = LogEntry(term=self.state.current_term, command=command)
         self.state.log.append(entry)
-        self.storage.append_wal(entry)
         self.persist_state()
         success = await self.broadcast_append_entries(full_sync=False)
         if success:
